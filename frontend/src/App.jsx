@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { config } from './config'
 
 function App() {
   const [documents, setDocuments] = useState([])
@@ -7,12 +8,45 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    fetch('/api/data')
-      .then(res => res.json())
-      .then(data => {
-        setDocuments(data)
+    // Fetch CSV from S3
+    fetch(`${config.baseUrl}${config.csvPath}`)
+      .then(res => res.text())
+      .then(csvText => {
+        // Parse CSV manually
+        const lines = csvText.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        const data = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+
+          // Simple CSV parsing (handles quoted fields)
+          const values = [];
+          let current = '';
+          let inQuotes = false;
+
+          for (let char of lines[i]) {
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              values.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          values.push(current.trim());
+
+          const row = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || '';
+          });
+          data.push(row);
+        }
+
+        setDocuments(data);
         if (data.length > 0) {
-          setSelectedDoc(data[0])
+          setSelectedDoc(data[0]);
         }
       })
       .catch(err => console.error("Error fetching data:", err))
@@ -112,7 +146,7 @@ function App() {
 
             <div className="pdf-panel">
               <iframe
-                src={`/pdfs/${selectedDoc['File Name']}`}
+                src={`${config.baseUrl}${config.pdfPath}${selectedDoc['File Name']}`}
                 title="PDF Viewer"
                 width="100%"
                 height="100%"
