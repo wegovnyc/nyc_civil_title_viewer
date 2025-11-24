@@ -6,50 +6,106 @@ function App() {
   const [documents, setDocuments] = useState([])
   const [selectedDoc, setSelectedDoc] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  // Handle URL-based document selection
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('code');
+
+    if (codeParam && documents.length > 0) {
+      const doc = documents.find(d => d['Title Code'] === codeParam);
+      if (doc) {
+        setSelectedDoc(doc);
+      }
+    }
+  }, [documents]);
 
   useEffect(() => {
     // Fetch CSV from S3
+    setLoading(true);
     fetch(`${config.baseUrl}${config.csvPath}`)
       .then(res => res.text())
       .then(csvText => {
-        // Parse CSV manually
-        const lines = csvText.split('\n');
-        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-        const data = [];
-
-        for (let i = 1; i < lines.length; i++) {
-          if (!lines[i].trim()) continue;
-
-          // Simple CSV parsing (handles quoted fields)
-          const values = [];
-          let current = '';
+        // Robust CSV parsing that handles quoted fields with newlines
+        const parseCSV = (text) => {
+          const rows = [];
+          let currentRow = [];
+          let currentField = '';
           let inQuotes = false;
 
-          for (let char of lines[i]) {
+          for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const nextChar = text[i + 1];
+
             if (char === '"') {
-              inQuotes = !inQuotes;
+              if (inQuotes && nextChar === '"') {
+                // Escaped quote
+                currentField += '"';
+                i++; // Skip next quote
+              } else {
+                // Toggle quote state
+                inQuotes = !inQuotes;
+              }
             } else if (char === ',' && !inQuotes) {
-              values.push(current.trim());
-              current = '';
+              // End of field
+              currentRow.push(currentField);
+              currentField = '';
+            } else if (char === '\n' && !inQuotes) {
+              // End of row
+              if (currentField || currentRow.length > 0) {
+                currentRow.push(currentField);
+                rows.push(currentRow);
+                currentRow = [];
+                currentField = '';
+              }
             } else {
-              current += char;
+              currentField += char;
             }
           }
-          values.push(current.trim());
 
-          const row = {};
+          // Push last field and row
+          if (currentField || currentRow.length > 0) {
+            currentRow.push(currentField);
+            rows.push(currentRow);
+          }
+
+          return rows;
+        };
+
+        const rows = parseCSV(csvText);
+        const headers = rows[0];
+        const data = rows.slice(1).map(row => {
+          const obj = {};
           headers.forEach((header, index) => {
-            row[header] = values[index] || '';
+            obj[header] = row[index] || '';
           });
-          data.push(row);
-        }
+          return obj;
+        }).filter(row => row['File Name']); // Filter out empty rows
 
         setDocuments(data);
-        if (data.length > 0) {
+
+        // Check URL for initial document selection
+        const params = new URLSearchParams(window.location.search);
+        const codeParam = params.get('code');
+
+        if (codeParam) {
+          const doc = data.find(d => d['Title Code'] === codeParam);
+          if (doc) {
+            setSelectedDoc(doc);
+          } else if (data.length > 0) {
+            setSelectedDoc(data[0]);
+          }
+        } else if (data.length > 0) {
           setSelectedDoc(data[0]);
         }
+
+        setLoading(false);
       })
-      .catch(err => console.error("Error fetching data:", err))
+      .catch(err => {
+        console.error("Error fetching data:", err);
+        setLoading(false);
+      })
   }, [])
 
   const filteredDocs = documents.filter(doc =>
@@ -57,6 +113,25 @@ function App() {
     doc['Job Title'].toLowerCase().includes(searchTerm.toLowerCase()) ||
     doc['Title Code'].includes(searchTerm)
   )
+
+  const handleDocumentSelect = (doc) => {
+    setSelectedDoc(doc);
+    // Update URL with permalink using Title Code only
+    const url = new URL(window.location.origin + window.location.pathname);
+    url.searchParams.set('code', doc['Title Code']);
+    window.history.pushState({}, '', url);
+  };
+
+  if (loading) {
+    return (
+      <div className="app-container">
+        <div className="loading">
+          <div className="loading-spinner"></div>
+          <p>Loading documents...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -74,7 +149,7 @@ function App() {
             <div
               key={index}
               className={`doc-item ${selectedDoc === doc ? 'active' : ''}`}
-              onClick={() => setSelectedDoc(doc)}
+              onClick={() => handleDocumentSelect(doc)}
             >
               <div className="doc-title">{doc['Job Title'] || doc['File Name']}</div>
               <div className="doc-meta">{doc['Title Code']} - {doc['Effective Date']}</div>
