@@ -8,6 +8,18 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
 
+  const downloadRawText = (doc) => {
+    const blob = new Blob([doc['Raw Text'] || 'No raw text available'], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${doc['Title Code']}_raw_text.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // Handle URL-based document selection
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -135,103 +147,190 @@ function App() {
 
   return (
     <div className="app-container">
-      <div className="sidebar">
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Search documents..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="doc-list">
-          {filteredDocs.map((doc, index) => (
-            <div
-              key={index}
-              className={`doc-item ${selectedDoc === doc ? 'active' : ''}`}
-              onClick={() => handleDocumentSelect(doc)}
-            >
-              <div className="doc-title">{doc['Job Title'] || doc['File Name']}</div>
-              <div className="doc-meta">{doc['Title Code']} - {doc['Effective Date']}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="main-content">
-        {selectedDoc ? (
-          <div className="split-view">
-            <div className="data-panel">
-              <h2>{selectedDoc['Title Code']}</h2>
-              <div className="field-group">
-                <label>File Name</label>
-                <div>{selectedDoc['File Name']}</div>
-              </div>
-              <div className="field-group">
-                <label>Header 1</label>
-                <div>{selectedDoc['Header 1']}</div>
-              </div>
-              <div className="field-group">
-                <label>Header 2</label>
-                <div>{selectedDoc['Header 2']}</div>
-              </div>
-              <div className="field-group">
-                <label>Title Code</label>
-                <div>{selectedDoc['Title Code']}</div>
-              </div>
-              <div className="field-group">
-                <label>Job Title</label>
-                <div>{selectedDoc['Job Title']}</div>
-              </div>
-              <div className="field-group">
-                <label>Effective Date</label>
-                <div>{selectedDoc['Effective Date']}</div>
-              </div>
-
-              <div className="field-group">
-                <label>Duties and Responsibilities</label>
-                <div className="text-block">{selectedDoc['Duties and Responsibilities']}</div>
-              </div>
-
-              <div className="field-group">
-                <label>Examples of Typical Tasks</label>
-                <div className="text-block">{selectedDoc['Examples of Typical Tasks']}</div>
-              </div>
-
-              <div className="field-group">
-                <label>Qualification Requirements</label>
-                <div className="text-block">{selectedDoc['Qualification Requirements']}</div>
-              </div>
-
-              <div className="field-group">
-                <label>Lines of Promotion</label>
-                <div className="text-block">{selectedDoc['Lines of Promotion']}</div>
-              </div>
-
-              <div className="field-group">
-                <label>Raw Text</label>
-                <div className="text-block raw-text">{selectedDoc['Raw Text']}</div>
-              </div>
-
-              <div className="field-group">
-                <label>Number of Pages</label>
-                <div>{selectedDoc['Num Pages']}</div>
-              </div>
-            </div>
-
-            <div className="pdf-panel">
-              <iframe
-                src={`${config.baseUrl}${config.pdfPath}${selectedDoc['File Name']}`}
-                title="PDF Viewer"
-                width="100%"
-                height="100%"
-              />
-            </div>
+      <div className="content">
+        <div className="sidebar">
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="Search documents..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-        ) : (
-          <div className="no-selection">Select a document to view</div>
-        )}
+          <div className="doc-list">
+            {filteredDocs.map((doc, index) => (
+              <div
+                key={index}
+                className={`doc-item ${selectedDoc === doc ? 'active' : ''}`}
+                onClick={() => handleDocumentSelect(doc)}
+              >
+                <div className="doc-title">{doc['Job Title'] || doc['File Name']}</div>
+                <div className="doc-meta">{doc['Title Code']} - {doc['Effective Date']}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="main-content">
+          {selectedDoc ? (
+            <div className="split-view">
+              <div className="data-panel">
+                <h2>{selectedDoc['Title Code']}</h2>
+
+                <div className="field-group">
+                  <label>Job Title</label>
+                  <div>{selectedDoc['Job Title']}</div>
+                </div>
+                <div className="field-group">
+                  <label>Effective Date</label>
+                  <div>{selectedDoc['Effective Date']}</div>
+                </div>
+                <div className="field-group">
+                  <label>Header 1</label>
+                  <div>{selectedDoc['Header 1']}</div>
+                </div>
+                <div className="field-group">
+                  <label>Header 2</label>
+                  <div>{selectedDoc['Header 2']}</div>
+                </div>
+
+                <div className="field-group">
+                  <label>Duties and Responsibilities</label>
+                  <div className="text-block">{selectedDoc['Duties and Responsibilities']}</div>
+                </div>
+
+                <div className="field-group">
+                  <label>Examples of Typical Tasks</label>
+                  <div className="text-block">{selectedDoc['Examples of Typical Tasks']}</div>
+                </div>
+
+                <div className="field-group">
+                  <label>Qualification Requirements</label>
+                  <div className="text-block">{selectedDoc['Qualification Requirements']}</div>
+                </div>
+
+                <div className="field-group">
+                  <label>Lines of Promotion</label>
+                  <div className="text-block">{selectedDoc['Lines of Promotion']}</div>
+                </div>
+
+                <div className="field-group">
+                  <label>File Name</label>
+                  <div>{selectedDoc['File Name']}</div>
+                </div>
+                <div className="field-group">
+                  <label>Title Code</label>
+                  <div>{selectedDoc['Title Code']}</div>
+                </div>
+                <div className="field-group">
+                  <label>Number of Pages</label>
+                  <div>{selectedDoc['Num Pages']}</div>
+                </div>
+
+                <div className="field-group">
+                  <label>Downloads</label>
+                  <div className="download-links">
+                    <button
+                      onClick={() => {
+                        // Fetch full CSV to get raw text for this document
+                        fetch(`${config.baseUrl}/extracted_data_full.csv`)
+                          .then(res => res.text())
+                          .then(csvText => {
+                            // Use the same robust CSV parser
+                            const parseCSV = (text) => {
+                              const rows = [];
+                              let currentRow = [];
+                              let currentField = '';
+                              let inQuotes = false;
+
+                              for (let i = 0; i < text.length; i++) {
+                                const char = text[i];
+                                const nextChar = text[i + 1];
+
+                                if (char === '"') {
+                                  if (inQuotes && nextChar === '"') {
+                                    currentField += '"';
+                                    i++;
+                                  } else {
+                                    inQuotes = !inQuotes;
+                                  }
+                                } else if (char === ',' && !inQuotes) {
+                                  currentRow.push(currentField);
+                                  currentField = '';
+                                } else if (char === '\n' && !inQuotes) {
+                                  if (currentField || currentRow.length > 0) {
+                                    currentRow.push(currentField);
+                                    rows.push(currentRow);
+                                    currentRow = [];
+                                    currentField = '';
+                                  }
+                                } else {
+                                  currentField += char;
+                                }
+                              }
+
+                              if (currentField || currentRow.length > 0) {
+                                currentRow.push(currentField);
+                                rows.push(currentRow);
+                              }
+
+                              return rows;
+                            };
+
+                            const rows = parseCSV(csvText);
+                            const headers = rows[0];
+                            const rawTextIndex = headers.findIndex(h => h.trim() === 'Raw Text');
+                            const fileNameIndex = headers.findIndex(h => h.trim() === 'File Name');
+
+                            // Find the row for this document
+                            for (let i = 1; i < rows.length; i++) {
+                              if (rows[i][fileNameIndex] === selectedDoc['File Name']) {
+                                const rawText = rows[i][rawTextIndex] || 'No raw text available';
+
+                                const blob = new Blob([rawText], { type: 'text/plain' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${selectedDoc['Title Code']}_extracted_text.txt`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                                break;
+                              }
+                            }
+                          });
+                      }}
+                      className="download-btn"
+                    >
+                      📝 Download Extracted Text
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pdf-panel">
+                <iframe
+                  src={`${config.baseUrl}${config.pdfPath}${selectedDoc['File Name']}`}
+                  title="PDF Viewer"
+                  width="100%"
+                  height="100%"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="no-selection">Select a document to view</div>
+          )}
+        </div>
       </div>
+
+      <footer className="app-footer">
+        <p>
+          Data from Department of Citywide Administrative Services (DCAS) sent November 18, 2024 in response to FOIL-2024-868-00064 submitted by <a href="https://wegovnyc.org" target="_blank" rel="noopener noreferrer">WeGovNYC</a>. Site by <a href="https://wegovnyc.org" target="_blank" rel="noopener noreferrer">WeGovNYC</a>
+          {' | '}
+          <a href={`${config.baseUrl}/extracted_data_full.csv`} download className="footer-link">📥 Download All Extracted Text (CSV)</a>
+        </p>
+      </footer>
     </div>
   )
 }
