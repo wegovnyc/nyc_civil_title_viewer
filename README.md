@@ -50,9 +50,13 @@ A web application to view NYC Civil Service Title Specifications with extracted 
 5. **Access the App**:
    - Open http://localhost:5173
 
+## Production
+
+**Live Site**: [http://nyc-civil-title-viewer.s3-website-us-east-1.amazonaws.com](http://nyc-civil-title-viewer.s3-website-us-east-1.amazonaws.com)
+
 ## Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions on deploying to Render.
+The application is deployed on **AWS S3** with static website hosting. See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
 
 ## Data
 

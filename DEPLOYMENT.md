@@ -1,4 +1,6 @@
-# Deploying PDF Viewer App to Render
+# Deploying PDF Viewer App to AWS S3 + CloudFront
+
+> **Note**: This application is deployed on AWS S3 with static hosting. The Render configuration was a draft option that was never used.
 
 ## Prerequisites
 - GitHub account

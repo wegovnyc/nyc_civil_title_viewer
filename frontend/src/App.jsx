@@ -7,6 +7,15 @@ function App() {
   const [selectedDoc, setSelectedDoc] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+
+  useEffect(() => {
+    // Check if we are in no-menu mode
+    if (window.location.pathname.includes('/no-menu/')) {
+      setShowSidebar(false);
+    }
+  }, []);
 
   const downloadRawText = (doc) => {
     const blob = new Blob([doc['Raw Text'] || 'No raw text available'], { type: 'text/plain' });
@@ -22,16 +31,38 @@ function App() {
 
   // Handle URL-based document selection
   useEffect(() => {
+    if (loading) return;
+
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
 
-    if (codeParam && documents.length > 0) {
-      const doc = documents.find(d => d['Title Code'] === codeParam);
-      if (doc) {
-        setSelectedDoc(doc);
+    if (codeParam) {
+      if (documents.length > 0) {
+        const doc = documents.find(d => d['Title Code'] === codeParam);
+        if (doc) {
+          setSelectedDoc(doc);
+          setNotFound(false);
+        } else {
+          // Document not found for the provided code
+          setSelectedDoc(null);
+          setNotFound(true);
+        }
+      }
+      // If documents are empty but we finished loading, that's a different problem (empty CSV?), 
+      // likely fine to treat as not found if code was asked for.
+      else {
+        setNotFound(true);
+      }
+    } else {
+      // No code param
+      // If we have docs and nothing selected, maybe select first? 
+      // Logic from before: "else if (data.length > 0) setSelectedDoc(data[0])"
+      // Let's keep that behavior if desired, or just leave null "Select a document"
+      if (!selectedDoc && documents.length > 0) {
+        setSelectedDoc(documents[0]);
       }
     }
-  }, [documents]);
+  }, [documents, loading]);
 
   useEffect(() => {
     // Fetch CSV from S3
@@ -97,21 +128,7 @@ function App() {
 
         setDocuments(data);
 
-        // Check URL for initial document selection
-        const params = new URLSearchParams(window.location.search);
-        const codeParam = params.get('code');
-
-        if (codeParam) {
-          const doc = data.find(d => d['Title Code'] === codeParam);
-          if (doc) {
-            setSelectedDoc(doc);
-          } else if (data.length > 0) {
-            setSelectedDoc(data[0]);
-          }
-        } else if (data.length > 0) {
-          setSelectedDoc(data[0]);
-        }
-
+        setDocuments(data);
         setLoading(false);
       })
       .catch(err => {
@@ -128,6 +145,7 @@ function App() {
 
   const handleDocumentSelect = (doc) => {
     setSelectedDoc(doc);
+    setNotFound(false);
     // Update URL with permalink using Title Code only
     const url = new URL(window.location.origin + window.location.pathname);
     url.searchParams.set('code', doc['Title Code']);
@@ -148,31 +166,38 @@ function App() {
   return (
     <div className="app-container">
       <div className="content">
-        <div className="sidebar">
-          <div className="search-bar">
-            <input
-              type="text"
-              placeholder="Search documents..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        {showSidebar && (
+          <div className="sidebar">
+            <div className="search-bar">
+              <input
+                type="text"
+                placeholder="Search documents..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="doc-list">
+              {filteredDocs.map((doc, index) => (
+                <div
+                  key={index}
+                  className={`doc-item ${selectedDoc === doc ? 'active' : ''}`}
+                  onClick={() => handleDocumentSelect(doc)}
+                >
+                  <div className="doc-title">{doc['Job Title'] || doc['File Name']}</div>
+                  <div className="doc-meta">{doc['Title Code']} - {doc['Effective Date']}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="doc-list">
-            {filteredDocs.map((doc, index) => (
-              <div
-                key={index}
-                className={`doc-item ${selectedDoc === doc ? 'active' : ''}`}
-                onClick={() => handleDocumentSelect(doc)}
-              >
-                <div className="doc-title">{doc['Job Title'] || doc['File Name']}</div>
-                <div className="doc-meta">{doc['Title Code']} - {doc['Effective Date']}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
 
-        <div className="main-content">
-          {selectedDoc ? (
+        <div className={`main-content ${!showSidebar ? 'full-width' : ''}`}>
+          {notFound ? (
+            <div className="not-found-container" style={{ padding: '2rem', textAlign: 'center' }}>
+              <h3 style={{ marginBottom: '1rem' }}>Title Code Not Found</h3>
+              <p>We don't have a title description for this title code. If you have information about a title description for this title code, please let us know at <a href="https://wegov.nyc/contact">wegov.nyc/contact</a>.</p>
+            </div>
+          ) : selectedDoc ? (
             <div className="split-view">
               <div className="data-panel">
                 <h2>{selectedDoc['Title Code']}</h2>

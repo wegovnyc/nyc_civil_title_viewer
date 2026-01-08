@@ -1,9 +1,9 @@
 // S3 Configuration
-// Update this after creating your S3 bucket and CloudFront distribution
+// CloudFront distribution for HTTPS access
 
 export const config = {
-    // Direct S3 website URL
-    baseUrl: 'http://nyc-civil-title-viewer.s3-website-us-east-1.amazonaws.com',
+    // CloudFront HTTPS URL
+    baseUrl: 'https://d3qtzx0huzpvc0.cloudfront.net',
 
     // Paths
     csvPath: '/extracted_data.csv',

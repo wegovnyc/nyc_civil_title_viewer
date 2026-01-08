@@ -36,6 +36,12 @@ aws s3 cp dist/index.html s3://$BUCKET_NAME/index.html \
   --region $REGION \
   --cache-control "no-cache"
 
+# Create no-menu directory and copy index.html there to support the route
+echo "📂 Creating no-menu route..."
+aws s3 cp dist/index.html s3://$BUCKET_NAME/no-menu/index.html \
+  --region $REGION \
+  --cache-control "no-cache"
+
 # Step 4: Upload CSV
 echo "📤 Uploading CSV data..."
 aws s3 cp "$CSV_FILE" s3://$BUCKET_NAME/extracted_data.csv \

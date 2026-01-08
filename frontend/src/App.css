@@ -79,6 +79,11 @@
   height: 100%;
 }
 
+.main-content.full-width .data-panel {
+  max-width: none;
+  width: 50%;
+}
+
 .content {
   display: flex;
   flex: 1;
