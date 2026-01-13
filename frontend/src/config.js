@@ -1,9 +1,9 @@
 // S3 Configuration
-// CloudFront distribution for HTTPS access
+// CloudFront distribution with custom domain
 
 export const config = {
-    // CloudFront HTTPS URL
-    baseUrl: 'https://d3qtzx0huzpvc0.cloudfront.net',
+    // Custom domain HTTPS URL
+    baseUrl: 'https://title-viewer.wegov.nyc',
 
     // Paths
     csvPath: '/extracted_data.csv',
